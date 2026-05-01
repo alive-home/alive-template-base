@@ -23,6 +23,7 @@ apps/
 packages/
   shared/     Zod schemas + cross-app env helpers
 e2e/          Playwright suite (uses real tRPC client over HTTP)
+alive.toml    Deploy contract for hosting on Alive (see "Deploying on Alive")
 docker-bake.hcl
 compose.yaml
 ```
@@ -106,3 +107,34 @@ REGISTRY=ghcr.io/yourorg/myapp TAG=v1 docker buildx bake --push
 ```
 
 `group "default"` builds every app; pass a target name to build a single image.
+
+### Deploying on Alive
+
+[Alive](https://alive.site) hosts projects from this template natively. The contract between the project and the host is [`alive.toml`](alive.toml) — a single file that declares which service receives external traffic, what port each service listens on, and which env vars must be set at deploy time:
+
+```toml
+[deploy]
+public_target = "web"
+
+[deploy.services.api]
+port = 3001
+env_required = ["AUTH_SECRET"]
+
+[deploy.services.web]
+port = 80
+depends_on = ["api"]
+```
+
+Three rules to keep in mind when extending the template:
+
+1. **Single public ingress.** `public_target` names exactly one service. Everything else is intra-cluster only, reachable by other containers via service-name DNS (`http://api:3001`). This is why `apps/web/nginx.conf` proxies `/trpc` to the api container — the browser only ever talks to web's hostname; web's nginx fans out to private services.
+2. **Service names are DNS labels.** Lowercase, no underscores. They double as both the bake target name in [`docker-bake.hcl`](docker-bake.hcl) and the container DNS name inside the cluster, so renaming a service is a multi-file change.
+3. **`env_required` is a contract.** Listing a key here doesn't provide a value — Alive's per-project encrypted env store does. Listing a key blocks deploys until a value is set; useful for catching missing secrets before the runner pulls images.
+
+The Alive deploy flow:
+
+1. **Build.** A short-lived builder sandbox runs `docker buildx bake --push` with `REGISTRY` and `TAG` set to the project's namespace on Alive's registry. Each pushed image is recorded with its sha256 digest.
+2. **Deploy.** A long-lived runner sandbox per project pulls images **by digest** (tags are mutable, digests are not), synthesizes a runtime compose file from `alive.toml`, runs `nerdctl compose up -d`, and reports the public URL.
+3. **Route.** Alive's edge resolves your project hostname to the runner sandbox's exposed port via a routing map refreshed on every deploy.
+
+You don't run any commands yourself — Alive's chat UI triggers the build + deploy on demand. This README section exists so the AI builder editing your project knows the conventions to preserve.
