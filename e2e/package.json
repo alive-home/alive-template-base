@@ -1,0 +1,15 @@
+{
+	"name": "e2e",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "playwright test",
+		"install-browsers": "playwright install --with-deps chromium",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@playwright/test": "1.59.1",
+		"@template/api": "workspace:*",
+		"@trpc/client": "11.17.0"
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"semverGroups": [
+		{
+			"range": "",
+			"dependencyTypes": ["prod", "dev", "peer"],
+			"dependencies": ["**"],
+			"packages": ["**"]
+		}
+	],
+	"versionGroups": [
+		{
+			"label": "Use workspace protocol when developing local packages",
+			"dependencies": ["$LOCAL"],
+			"dependencyTypes": ["prod", "dev", "peer"],
+			"pinVersion": "workspace:*"
+		},
+		{
+			"label": "@types packages should only be under devDependencies",
+			"dependencies": ["@types/**"],
+			"dependencyTypes": ["!dev"],
+			"isBanned": true
+		},
+		{
+			"label": "Align all package versions",
+			"preferVersion": "highestSemver"
+		}
+	]
+}

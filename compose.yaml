@@ -1,0 +1,24 @@
+# Local convenience: bring up the baked images.
+# Production-grade orchestration belongs to your hosting platform.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3001}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      PORT: "3001"
+    ports: ["3001:3001"]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3001}
+        VITE_WEB_BASE_URL: ${VITE_WEB_BASE_URL:-http://localhost:3000}
+    depends_on: [api]
+    ports: ["3000:80"]
