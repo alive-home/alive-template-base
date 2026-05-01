@@ -1,0 +1,47 @@
+# Alive deploy contract for this template.
+#
+# Read by alive-home/alive's @webalive/site-runtime-docker at deploy
+# time (via the alive_toml_snapshot column on deploy.project_releases).
+# Documents which target is the public service, what port each
+# service listens on inside the cluster, and which env vars MUST be
+# set at deploy time.
+#
+# This file is the contract between the project and the hoster:
+#   - Renaming a service here is a breaking change for routing.
+#   - Adding a new env_required key without setting a value blocks
+#     the next deploy until the user sets it.
+#   - public_target receives ALL external traffic; non-public services
+#     are reachable only intra-cluster via container DNS (`http://api:3001`,
+#     etc.).
+
+schema = 1
+
+[deploy]
+# The bake target that receives external traffic. Must match a key in
+# `[deploy.services]` AND a target name in docker-bake.hcl.
+public_target = "web"
+
+# ─── Services ────────────────────────────────────────────────────────────────
+# Each declared service maps 1:1 to a docker-bake.hcl target. The runtime
+# pulls one image per service (by digest) and wires them on a single
+# bridge network where service names are DNS labels.
+
+[deploy.services.api]
+# Port the api process listens on inside its container. Used to bind
+# the intra-cluster DNS endpoint (http://api:3001) — never exposed
+# publicly because `api` is not the public_target.
+port = 3001
+# AUTH_SECRET is the JWT signing key + login password. Required for
+# every deploy; the deployer fails fast if it's missing.
+env_required = ["AUTH_SECRET"]
+
+[deploy.services.web]
+# Container port the nginx in apps/web listens on (see apps/web/Dockerfile
+# `EXPOSE 80`). The runtime publishes this on the host so the routing
+# layer can reverse-proxy to it.
+port = 80
+# web depends on api so the api container is started first. nerdctl
+# only enforces ordering, not health — but starting api first means
+# the trpc proxy in nginx.conf has its upstream resolvable on first
+# request.
+depends_on = ["api"]
