@@ -101,9 +101,11 @@ jobs:
       # Exposes ACTIONS_RUNTIME_TOKEN etc. to run-steps — required for
       # `cache-from type=gha` when invoking buildx directly.
       - uses: crazy-max/ghaction-github-runtime@v3
+      # -f is load-bearing: bare `bake` also merges compose.yaml, whose
+      # required AUTH_SECRET interpolation fails outside local dev.
       - name: Build images (amd64, no push)
         run: |
-          docker buildx bake \
+          docker buildx bake -f docker-bake.hcl \
             --set "*.platform=linux/amd64" \
             --set "api.cache-from=type=gha,scope=api" \
             --set "web.cache-from=type=gha,scope=web"

@@ -65,9 +65,11 @@ jobs:
           REGISTRY: ${{ steps.meta.outputs.registry }}
         run: |
           # First bake builds and pushes; the rest re-push the cached layers
-          # under the extra tags (manifest-only, no rebuild).
+          # under the extra tags (manifest-only, no rebuild). -f is
+          # load-bearing: bare `bake` also merges compose.yaml, whose
+          # required AUTH_SECRET interpolation fails outside local dev.
           for tag in ${{ steps.meta.outputs.tags }}; do
-            TAG="$tag" docker buildx bake --push \
+            TAG="$tag" docker buildx bake -f docker-bake.hcl --push \
               --set "api.cache-from=type=gha,scope=api" \
               --set "api.cache-to=type=gha,scope=api,mode=max" \
               --set "web.cache-from=type=gha,scope=web" \
