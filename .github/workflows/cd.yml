@@ -1,0 +1,96 @@
+name: CD
+
+# Publishes both images to GHCR via docker-bake.hcl:
+#   push to main  → :sha-<short> + :latest
+#   tag v*        → :<version>  + :latest
+#   dispatch      → :sha-<short>   (emergency rebuilds)
+#
+# The web image inlines its public URLs at build time. Set the repository
+# variables API_BASE_URL / WEB_BASE_URL to your real origins; without them
+# the localhost defaults from docker-bake.hcl are baked in.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Never cancel a publish mid-flight: a cancelled multi-arch push can leave a
+# tag whose manifest list is missing platforms.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      API_BASE_URL: ${{ vars.API_BASE_URL || 'http://localhost:3001' }}
+      WEB_BASE_URL: ${{ vars.WEB_BASE_URL || 'http://localhost:3000' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      # Exposes ACTIONS_RUNTIME_TOKEN etc. to run-steps — required for
+      # `cache type=gha` when invoking buildx directly.
+      - uses: crazy-max/ghaction-github-runtime@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve registry and tags
+        id: meta
+        run: |
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          short_sha="${GITHUB_SHA::7}"
+          case "$GITHUB_REF" in
+            refs/tags/v*) tags="${GITHUB_REF#refs/tags/v} latest" ;;
+            refs/heads/main) tags="sha-$short_sha latest" ;;
+            *) tags="sha-$short_sha" ;;
+          esac
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "primary=${tags%% *}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        env:
+          REGISTRY: ${{ steps.meta.outputs.registry }}
+        run: |
+          # First bake builds and pushes; the rest re-push the cached layers
+          # under the extra tags (manifest-only, no rebuild). -f is
+          # load-bearing: bare `bake` also merges compose.yaml, whose
+          # required AUTH_SECRET interpolation fails outside local dev.
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            TAG="$tag" docker buildx bake -f docker-bake.hcl --push \
+              --set "api.cache-from=type=gha,scope=api" \
+              --set "api.cache-to=type=gha,scope=api,mode=max" \
+              --set "web.cache-from=type=gha,scope=web" \
+              --set "web.cache-to=type=gha,scope=web,mode=max"
+          done
+
+      - name: Sanity-boot pushed images
+        env:
+          REGISTRY: ${{ steps.meta.outputs.registry }}
+          TAG: ${{ steps.meta.outputs.primary }}
+        run: |
+          docker run -d --name api -p 3001:3001 \
+            -e API_BASE_URL=http://localhost:3001 \
+            -e WEB_BASE_URL=http://localhost:3000 \
+            -e AUTH_SECRET=cd-sanity-check-secret \
+            "$REGISTRY/api:$TAG"
+          docker run -d --name web -p 8080:80 "$REGISTRY/web:$TAG"
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:3001/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS http://localhost:3001/health
+          curl -fsS http://localhost:8080/ >/dev/null
+          docker rm -f api web

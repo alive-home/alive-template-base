@@ -13,6 +13,7 @@
 | Web         | Vite + React 19 + TanStack Router/Query/Form/Table + Tailwind v4    |
 | Validation  | Zod 4 + `@t3-oss/env-core`                                          |
 | Lint/format | Biome 2 (+ syncpack for cross-workspace dep alignment)              |
+| Tasks       | Turborepo (`dev`, `build`, `typecheck`)                             |
 | E2E         | Playwright (auto-boots api + web)                                   |
 | Build/ship  | Docker + `docker-bake.hcl` (one image per app)                      |
 
@@ -30,23 +31,41 @@ compose.yaml
 ## Quickstart
 
 ```bash
+bun run dev:local    # creates .env (generated AUTH_SECRET), bun install, boots api: 3001 + web: 3000
+```
+
+Or by hand:
+
+```bash
 cp .env.example .env
 bun install
-bun run dev          # api: 3001, web: 3000
+bun run dev          # turbo run dev — api: 3001, web: 3000
 ```
 
 ## Scripts
 
 ```bash
+bun run dev:local         # one-command local stack (scripts/runtime/local.sh), no docker
+bun run dev               # turbo: api + web dev servers in parallel
+bun run build             # turbo: build all apps
 bun run lint              # biome check (fails on issues)
 bun run format            # biome format --write
-bun run typecheck         # tsc --noEmit, parallel across workspaces
+bun run typecheck         # tsc --noEmit via turbo, parallel across workspaces
 bun run test:e2e          # playwright (auto-boots api + web)
 bun run docker:build      # build both images via bake (group "default")
 bun run docker:push       # build + push to $REGISTRY
 bunx syncpack lint        # check cross-workspace dep alignment
 bunx syncpack fix         # fix mismatches
 ```
+
+## CI/CD
+
+Two workflows in [`.github/workflows`](.github/workflows):
+
+- **`ci.yml`** — on every PR and push to main: biome + syncpack, typecheck, turbo build (asserts `VITE_*` got inlined), Playwright e2e (boots api + web itself), docker image builds from a clean context, and actionlint on the workflows themselves. The `ci` aggregator job is the only check branch protection needs — new jobs become required automatically.
+- **`cd.yml`** — on push to main / `v*` tags: builds and pushes both images (amd64 + arm64) to GHCR via `docker buildx bake`, then sanity-boots the pushed images and curls them. Set repository variables `API_BASE_URL` / `WEB_BASE_URL` for real public origins; otherwise localhost defaults are baked into the web bundle.
+
+Shared plumbing: [`.github/actions/setup`](.github/actions/setup/action.yml) installs bun (version from `packageManager` in package.json) and does a frozen install; caches restore on every branch but only main writes them. Dependabot keeps the actions pinned.
 
 ## Conventions for the AI builder
 
