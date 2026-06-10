@@ -30,3 +30,6 @@ e2e/.cache
 
 # typescript
 *.tsbuildinfo
+# claude code (machine-local)
+.claude/settings.json
+.claude/settings.local.json

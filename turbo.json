@@ -1,0 +1,25 @@
+{
+	"$schema": "https://turborepo.com/schema.json",
+	"globalEnv": [
+		"NODE_ENV",
+		"PORT",
+		"API_BASE_URL",
+		"WEB_BASE_URL",
+		"AUTH_SECRET",
+		"VITE_API_BASE_URL",
+		"VITE_WEB_BASE_URL"
+	],
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**"]
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"typecheck": {
+			"dependsOn": ["^typecheck"]
+		}
+	}
+}

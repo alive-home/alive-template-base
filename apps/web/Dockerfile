@@ -1,14 +1,19 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.2-alpine AS base
+ARG BUN_VERSION=1.3.11
+
+FROM oven/bun:${BUN_VERSION}-alpine AS base
 WORKDIR /repo
 
 FROM base AS deps
-COPY package.json bun.lock* ./
-COPY apps/web/package.json apps/web/
+# Every workspace package.json must be present or the frozen install fails:
+# bun checks the lockfile's workspace set against what it finds on disk.
+COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
-RUN bun install --frozen-lockfile || bun install
+COPY e2e/package.json e2e/
+RUN bun install --frozen-lockfile
 
 FROM deps AS build
 ARG VITE_API_BASE_URL
