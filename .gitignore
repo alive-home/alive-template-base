@@ -30,3 +30,4 @@ e2e/.cache
 # claude code (machine-local)
 .claude/settings.json
 .claude/settings.local.json
+.claude/worktrees/
