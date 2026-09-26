@@ -19,8 +19,12 @@ permissions:
 env:
   TURBO_TELEMETRY_DISABLED: "1"
 
+# Every job skips in alive-team: that org holds the private per-workspace
+# copies ("twins") Alive pushes on every checkpoint, and CI there would run on
+# every save of every project built from this template.
 jobs:
   lint:
+    if: github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,6 +34,7 @@ jobs:
       - run: bunx syncpack lint
 
   typecheck:
+    if: github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -38,6 +43,7 @@ jobs:
       - run: bun run typecheck
 
   build:
+    if: github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -52,6 +58,7 @@ jobs:
         run: grep -rq "localhost:3001" apps/web/dist/assets/
 
   e2e:
+    if: github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -90,6 +97,7 @@ jobs:
           retention-days: 7
 
   docker:
+    if: github.repository_owner != 'alive-team'
     # Validates that both images build from a clean context — catches missing
     # COPY lines and frozen-lockfile drift that local dev never hits. Build
     # cache is read from main's CD runs; PRs never write cache (storage quota).
@@ -116,6 +124,7 @@ jobs:
           }
 
   workflow-lint:
+    if: github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -130,7 +139,7 @@ jobs:
     # dependency fails — otherwise a skipped aggregator counts as "passing"
     # under branch protection's "required checks that didn't run" semantics.
     needs: [lint, typecheck, build, e2e, docker, workflow-lint]
-    if: always()
+    if: always() && github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
