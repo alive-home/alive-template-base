@@ -36,7 +36,5 @@ test("protected todo endpoints require a JWT issued by login", async () => {
 
 test("login rejects a wrong password", async () => {
   const anon = client()
-  await expect(anon.auth.login({ password: "definitely-not-the-secret" })).rejects.toThrow(
-    /UNAUTHORIZED|bad password/,
-  )
+  await expect(anon.auth.login({ password: "definitely-not-the-secret" })).rejects.toThrow(/UNAUTHORIZED|bad password/)
 })
