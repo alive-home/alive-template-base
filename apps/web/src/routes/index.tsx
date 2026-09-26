@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { HelloInput } from "@template/shared"
 import { Button } from "@template/ui"
 import { useState } from "react"
-import { trpc } from "#/lib/trpc.ts"
+import { orpc } from "#/lib/orpc.ts"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const [name, setName] = useState("world")
-  const hello = useQuery(trpc.hello.queryOptions({ name }))
+  const hello = useQuery(orpc.hello.queryOptions({ input: { name } }))
 
   const form = useForm({
     defaultValues: { name: "" },
@@ -23,7 +23,7 @@ function HomePage() {
   return (
     <section className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Hello tRPC</h1>
+        <h1 className="text-2xl font-semibold">Hello oRPC</h1>
         <p className="text-neutral-600">{hello.isPending ? "loading…" : hello.data?.message}</p>
       </header>
 

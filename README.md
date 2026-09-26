@@ -8,7 +8,7 @@
 | Layer       | Choice                                                              |
 |-------------|---------------------------------------------------------------------|
 | Runtime     | Bun                                                                 |
-| API         | Hono + tRPC v11                                                     |
+| API         | Hono + oRPC v1                                                      |
 | Auth        | JWT (HS256) via `hono/jwt` — single password from `AUTH_SECRET`     |
 | Web         | Vite + React 19 + TanStack Router/Query/Form/Table + Tailwind v4    |
 | Validation  | Zod 4 + `@t3-oss/env-core`                                          |
@@ -19,11 +19,11 @@
 
 ```
 apps/
-  api/        Hono + tRPC + JWT auth                → bun runtime image
+  api/        Hono + oRPC + JWT auth                → bun runtime image
   web/        Vite SPA + TanStack stack             → static nginx image
 packages/
   shared/     Zod schemas + cross-app env helpers
-e2e/          Playwright suite (uses real tRPC client over HTTP)
+e2e/          Playwright suite (uses real oRPC client over HTTP)
 alive.toml    Deploy contract for hosting on Alive (see "Deploying on Alive")
 docker-bake.hcl
 compose.yaml
@@ -77,9 +77,9 @@ These are load-bearing — preserve them when extending the template.
 The repo aims to be as type-safe as practical. Defaults:
 
 - `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`, `isolatedModules` — see [`tsconfig.base.json`](tsconfig.base.json).
-- All cross-boundary data goes through Zod (`packages/shared/src/index.ts` for shared shapes, plus per-procedure inputs in tRPC).
+- All cross-boundary data goes through Zod (`packages/shared/src/index.ts` for shared shapes, plus per-procedure inputs in oRPC).
 - All env access goes through [`@t3-oss/env-core`](https://env.t3.gg) — never read `process.env` directly. Accessing an undeclared var throws at boot.
-- The web → api type contract is automatic: `AppRouter` is exported from `@template/api/router` and consumed by the typed tRPC client in [`apps/web/src/lib/trpc.ts`](apps/web/src/lib/trpc.ts).
+- The web → api type contract is automatic: `AppRouter` is exported from `@template/api/router` and consumed by the typed oRPC client in [`apps/web/src/lib/orpc.ts`](apps/web/src/lib/orpc.ts).
 - New code should not introduce `any`. Prefer `unknown` + a Zod parse at the boundary.
 
 ### Docker
@@ -96,7 +96,7 @@ When adding a new app, also add: a Dockerfile under `apps/<app>/`, a target in `
 
 Login surface is `auth.login` (public mutation taking `{ password }`) → returns `{ token }`. The token is an HS256 JWT signed with `AUTH_SECRET` (which doubles as the login password — fine for a single-user template, split into two env vars if you ever need real users).
 
-Server side: `protectedProcedure` in [`apps/api/src/trpc.ts`](apps/api/src/trpc.ts) reads `Authorization: Bearer <token>` and rejects with `UNAUTHORIZED` if missing/invalid. Web side: token is stored in `localStorage` via [`apps/web/src/lib/auth.ts`](apps/web/src/lib/auth.ts) and attached to every tRPC request automatically.
+Server side: `protectedProcedure` in [`apps/api/src/orpc.ts`](apps/api/src/orpc.ts) reads `Authorization: Bearer <token>` and rejects with `UNAUTHORIZED` if missing/invalid. Web side: token is stored in `localStorage` via [`apps/web/src/lib/auth.ts`](apps/web/src/lib/auth.ts) and attached to every oRPC request automatically.
 
 Extend by adding more `protectedProcedure` calls — don't bypass the middleware.
 
@@ -146,7 +146,7 @@ depends_on = ["api"]
 
 Three rules to keep in mind when extending the template:
 
-1. **Single public ingress.** `public_target` names exactly one service. Everything else is intra-cluster only, reachable by other containers via service-name DNS (`http://api:3001`). This is why `apps/web/nginx.conf` proxies `/trpc` to the api container — the browser only ever talks to web's hostname; web's nginx fans out to private services.
+1. **Single public ingress.** `public_target` names exactly one service. Everything else is intra-cluster only, reachable by other containers via service-name DNS (`http://api:3001`). This is why `apps/web/nginx.conf` proxies `/rpc` to the api container — the browser only ever talks to web's hostname; web's nginx fans out to private services.
 2. **Service names are DNS labels.** Lowercase, no underscores. They double as both the bake target name in [`docker-bake.hcl`](docker-bake.hcl) and the container DNS name inside the cluster, so renaming a service is a multi-file change.
 3. **`env_required` is a contract.** Listing a key here doesn't provide a value — Alive's per-project encrypted env store does. Listing a key blocks deploys until a value is set; useful for catching missing secrets before the runner pulls images.
 

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import type { Todo } from "@template/shared"
-import { trpc } from "#/lib/trpc.ts"
+import { orpc } from "#/lib/orpc.ts"
 
 export const Route = createFileRoute("/todos")({
   component: TodosPage,
@@ -10,16 +10,16 @@ export const Route = createFileRoute("/todos")({
 
 function TodosPage() {
   const qc = useQueryClient()
-  const list = useQuery(trpc.todo.list.queryOptions())
+  const list = useQuery(orpc.todo.list.queryOptions())
 
   const create = useMutation(
-    trpc.todo.create.mutationOptions({
-      onSuccess: () => qc.invalidateQueries({ queryKey: trpc.todo.list.queryKey() }),
+    orpc.todo.create.mutationOptions({
+      onSuccess: () => qc.invalidateQueries({ queryKey: orpc.todo.list.key() }),
     }),
   )
   const toggle = useMutation(
-    trpc.todo.toggle.mutationOptions({
-      onSuccess: () => qc.invalidateQueries({ queryKey: trpc.todo.list.queryKey() }),
+    orpc.todo.toggle.mutationOptions({
+      onSuccess: () => qc.invalidateQueries({ queryKey: orpc.todo.list.key() }),
     }),
   )
 
