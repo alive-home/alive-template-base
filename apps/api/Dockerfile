@@ -12,6 +12,7 @@ COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+COPY packages/ui/package.json packages/ui/
 COPY e2e/package.json e2e/
 RUN bun install --frozen-lockfile
 

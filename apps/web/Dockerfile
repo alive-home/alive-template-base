@@ -12,6 +12,7 @@ COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+COPY packages/ui/package.json packages/ui/
 COPY e2e/package.json e2e/
 RUN bun install --frozen-lockfile
 
@@ -22,6 +23,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_WEB_BASE_URL=$VITE_WEB_BASE_URL
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
+COPY packages/ui packages/ui
 COPY apps/api apps/api
 COPY apps/web apps/web
 RUN cd apps/web && bun run build

@@ -104,11 +104,16 @@ jobs:
       # -f is load-bearing: bare `bake` also merges compose.yaml, whose
       # required AUTH_SECRET interpolation fails outside local dev.
       - name: Build images (amd64, no push)
+        # Retry without cache-from if main's GHA cache has evicted blobs
+        # ("blob sha256:… not found"); see cd.yml.
         run: |
           docker buildx bake -f docker-bake.hcl \
             --set "*.platform=linux/amd64" \
             --set "api.cache-from=type=gha,scope=api" \
-            --set "web.cache-from=type=gha,scope=web"
+            --set "web.cache-from=type=gha,scope=web" || {
+            echo "::warning::bake with GHA cache failed; retrying without cache-from"
+            docker buildx bake -f docker-bake.hcl --set "*.platform=linux/amd64"
+          }
 
   workflow-lint:
     runs-on: ubuntu-latest
