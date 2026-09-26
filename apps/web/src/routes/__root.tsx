@@ -1,6 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
 import { createRootRouteWithContext, Link, Outlet } from "@tanstack/react-router"
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootLayout,
@@ -22,7 +21,6 @@ function RootLayout() {
       <main className="mx-auto max-w-3xl px-6 py-8">
         <Outlet />
       </main>
-      <TanStackRouterDevtools position="bottom-right" />
     </div>
   )
 }

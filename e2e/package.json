@@ -1,9 +1,10 @@
 {
   "name": "e2e",
   "devDependencies": {
+    "@orpc/client": "1.15.4",
+    "@orpc/server": "1.15.4",
     "@playwright/test": "1.61.1",
-    "@template/api": "workspace:*",
-    "@trpc/client": "11.18.0"
+    "@template/api": "workspace:*"
   },
   "private": true,
   "scripts": {

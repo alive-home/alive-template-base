@@ -42,6 +42,48 @@ env_required = ["AUTH_SECRET"]
 port = 80
 # web depends on api so the api container is started first. nerdctl
 # only enforces ordering, not health — but starting api first means
-# the trpc proxy in nginx.conf has its upstream resolvable on first
+# the /rpc proxy in nginx.conf has its upstream resolvable on first
 # request.
 depends_on = ["api"]
+
+# ─── Dev (alive-workspaced) ─────────────────────────────────────────────────
+# Reference: https://app.alive.site/schemas/alive-toml
+# The [deploy] tables above are read by the deployer, not by the in-sandbox
+# daemon, which reports them as unknown-table warnings; that is expected.
+
+[project]
+root = "."
+
+[setup]
+# Idempotent: install deps, and create a gitignored .env with a generated
+# AUTH_SECRET (the login password) only if one does not exist yet.
+command = "bun install && { [ -f .env ] || sed \"s|^AUTH_SECRET=.*|AUTH_SECRET=$(openssl rand -base64 32)|\" .env.example > .env; }"
+timeout_seconds = 600
+# bun's isolated linker puts a node_modules in every workspace package.
+keep = [
+  "node_modules",
+  "apps/api/node_modules",
+  "apps/web/node_modules",
+  "packages/shared/node_modules",
+  "packages/ui/node_modules",
+  "e2e/node_modules",
+]
+
+[setup.produces]
+env_file = ".env"
+root_modules = "node_modules"
+
+[dev.services.web]
+kind = "frontend"
+port = 3000
+# Vite; /rpc is proxied to the api service (see apps/web/vite.config.ts).
+# Deliberately no .env: its VITE_API_BASE_URL=http://localhost:3001 would make
+# the browser bypass the proxy; unset means same-origin "/rpc".
+command = "cd apps/web && bunx vite --port 3000 --strictPort"
+needs = ["api"]
+
+[dev.services.api]
+kind = "backend"
+port = 3001
+health_path = "/health"
+command = "cd apps/api && WEB_BASE_URL=https://3000-$ALIVE_PREVIEW_HOST_SUFFIX API_BASE_URL=https://3000-$ALIVE_PREVIEW_HOST_SUFFIX bun --env-file=../../.env --hot run src/index.ts"
