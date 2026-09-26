@@ -68,12 +68,23 @@ jobs:
           # under the extra tags (manifest-only, no rebuild). -f is
           # load-bearing: bare `bake` also merges compose.yaml, whose
           # required AUTH_SECRET interpolation fails outside local dev.
+          #
+          # A GHA cache whose blobs were evicted fails the build with
+          # "blob sha256:… not found"; retry once without cache-from so a
+          # stale cache can never block a publish.
+          bake() {
+            TAG="$1" docker buildx bake -f docker-bake.hcl --push \
+              --set "api.cache-to=type=gha,scope=api,mode=max,ignore-error=true" \
+              --set "web.cache-to=type=gha,scope=web,mode=max,ignore-error=true" \
+              "${@:2}"
+          }
           for tag in ${{ steps.meta.outputs.tags }}; do
-            TAG="$tag" docker buildx bake -f docker-bake.hcl --push \
+            bake "$tag" \
               --set "api.cache-from=type=gha,scope=api" \
-              --set "api.cache-to=type=gha,scope=api,mode=max" \
-              --set "web.cache-from=type=gha,scope=web" \
-              --set "web.cache-to=type=gha,scope=web,mode=max"
+              --set "web.cache-from=type=gha,scope=web" || {
+              echo "::warning::bake with GHA cache failed; retrying without cache-from"
+              bake "$tag"
+            }
           done
 
       - name: Sanity-boot pushed images
