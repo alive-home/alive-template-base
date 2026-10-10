@@ -86,7 +86,15 @@ Inspired by [Hermes Agent](https://github.com/NousResearch/hermes-agent)'s learn
 - **Memory is bounded.** 4,000 characters, enforced by `bun run lint:agent-context`. Entries are facts with their reason, not orders; when it fills up, the agent consolidates instead of skipping saves.
 - **Procedures go into skills, not memory.** After substantial work the `learn` skill decides where each lesson belongs and how to write it; `curate` merges overlapping skills and prunes stale memory.
 - **Context files are treated as code.** The same lint scans them for planted instructions, hidden Unicode and pasted secrets, since every session reads them with its own credentials.
-- `CLAUDE.md` only imports `AGENTS.md` and `MEMORY.md`, so Claude Code, Codex, Cursor and other agents share one copy.
+- `CLAUDE.md` only imports `AGENTS.md` and `MEMORY.md`, so Claude Code, Codex, Cursor and other agents share one copy. Hosts that copy `CLAUDE.md` without its imports are told to read the two files themselves.
+
+## Versions without git
+
+The people building with this template never touch git or GitHub; the agent keeps versions for them. It catches up with everyone's latest work at the start of a session and, after each finished request, saves the work, waits for CI and adds it to the main version. When asked, it goes back to an earlier version. All of it runs through [`scripts/versions.sh`](scripts/versions.sh) (`sync`, `ship`, `history`, `undo`, `restore`, `status`), with the rules in `AGENTS.md` and the [`versions`](.claude/skills/versions/SKILL.md) skill.
+
+- On GitHub, each change becomes a pull request that is squash-merged once its checks pass, so the main version's history reads as one plain-worded entry per change. Without GitHub it pushes the same single entry straight to the main branch.
+- Going back always adds a new version on top; nothing rewrites history. Restoring an old version keeps the agent's notes (`AGENTS.md`, `MEMORY.md`, skills) current.
+- Failing checks and colliding edits are the agent's to fix. The person is only asked when two people wanted different things in the same place.
 
 ## Environment
 

@@ -43,8 +43,8 @@ of narrow one-session skills is the failure to fix, not a library to keep.
   words, not reasons.
 - Deleting a skill only because it looks unused. Its task may not have come up yet; judge content,
   not traffic.
-- Merging `learn` or `curate` into something else. `AGENTS.md` and the lint output send agents to
-  them by name.
+- Merging `learn`, `curate` or `versions` into something else. `AGENTS.md` and the lint output
+  send agents to them by name.
 
 ## Check
 

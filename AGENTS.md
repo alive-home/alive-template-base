@@ -28,6 +28,27 @@ bun run dev:local    # api :3001 + web :3000 without docker (not on Alive, see b
 On Alive the dev servers already run under the workspace supervisor (`alive.toml` → `[dev.services]`).
 Restart them with `alive-workspaced restart web|api`; starting them yourself collides on the port.
 
+## Versions: your job, never the person's
+
+The people working here may never have heard of git or GitHub, and should not have to. Keeping
+versions is your job, done without being asked. The `versions` skill has the details;
+`scripts/versions.sh` does the mechanics.
+
+- **Start** every session with `scripts/versions.sh sync`, so you build on everyone's latest work.
+- **Finish** every request that changed files: lint and typecheck pass, then
+  `scripts/versions.sh ship "<what changed, in the person's words>"`. It saves, waits for the
+  checks and adds the work to the main version. Tell the person in one line. Failing checks and
+  colliding edits are yours to fix.
+- **Hold back** only while the person is still trying things out, or when two people wanted
+  different things in the same place: then ask, in their words, which version to keep.
+- **Talk in their words:** saved, version, main version, go back, live. Not commit, branch, push,
+  merge, pull request or GitHub, unless they say those first. Never ask them to do anything on GitHub.
+- **Going back adds a version on top** (`undo`, `restore`), so it can itself be undone. Never rewrite
+  history: no `reset --hard`, `push --force` or `rebase`.
+- **Saved is not live.** The main version reaches visitors only through a publish.
+- Alive also backs up each session after every reply on `alive/*` branches. Those are the
+  platform's: never push to, delete or mention them.
+
 ## Memory (`MEMORY.md`)
 
 A small notebook the agent keeps for the project. Every line costs tokens in every session, so it
