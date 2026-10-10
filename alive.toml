@@ -86,4 +86,6 @@ needs = ["api"]
 kind = "backend"
 port = 3001
 health_path = "/health"
-command = "cd apps/api && WEB_BASE_URL=https://3000-$ALIVE_PREVIEW_HOST_SUFFIX API_BASE_URL=https://3000-$ALIVE_PREVIEW_HOST_SUFFIX bun --env-file=../../.env --hot run src/index.ts"
+# .env.development holds the env keys set in Alive's settings; it is read after
+# .env so those win. Bun skips a missing file.
+command = "cd apps/api && WEB_BASE_URL=https://3000-$ALIVE_PREVIEW_HOST_SUFFIX API_BASE_URL=https://3000-$ALIVE_PREVIEW_HOST_SUFFIX bun --env-file=../../.env --env-file=../../.env.development --hot run src/index.ts"

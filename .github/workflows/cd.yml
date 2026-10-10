@@ -27,6 +27,9 @@ permissions:
 
 jobs:
   publish:
+    # Skipped in alive-team, where Alive keeps a private copy of each workspace
+    # and pushes it on every checkpoint; see ci.yml.
+    if: github.repository_owner != 'alive-team'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

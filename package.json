@@ -14,7 +14,7 @@
   "packageManager": "bun@1.3.11",
   "private": true,
   "scripts": {
-    "build": "bun --env-file=.env turbo run build",
+    "build": "bun --env-file=.env turbo run build && bun scripts/publish-dist.ts",
     "check": "bun run lint && bun run typecheck",
     "dev": "bun --env-file=.env turbo run dev",
     "dev:local": "scripts/runtime/local.sh",
